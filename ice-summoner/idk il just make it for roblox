@@ -2,77 +2,67 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
-
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-
-local CONFIG = {
-	FOG_DENSITY = 0.95,
-	FOG_COLOR = Color3.fromRGB(220, 230, 255),
-	WIND_SPEED = Vector3.new(70, -20, 40),
-	SHAKE_POWER = 0.15,
-	CHECK_RATE = 0.5
+local SETTINGS = {
+	MAX_FOG = 0.98,
+	WIND_DIR = Vector3.new(100, -25, 50),
+	SNOW_RATE = 4000,
+	FADE_TIME = 15
 }
-
-local Atmosphere = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", Lighting)
-local ColorCorr = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
-local SnowEmitter = nil
-local IsIndoors = false
-
-local function CreateSnow()
+local UI = Instance.new("ScreenGui", Player.PlayerGui)
+local Frost = Instance.new("ImageLabel", UI)
+UI.Name = "EnvironmentSystem"
+Frost.Size = UDim2.new(1, 0, 1, 0)
+Frost.BackgroundTransparency = 1
+Frost.Image = "rbxassetid://131661832"
+Frost.ImageColor3 = Color3.fromRGB(180, 210, 255)
+Frost.ImageTransparency = 1
+local Atm = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", Lighting)
+local CC = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
+local Blur = Lighting:FindFirstChildOfClass("BlurEffect") or Instance.new("BlurEffect", Lighting)
+local Wind = Instance.new("Sound", Camera)
+Atm.Density = 0
+Atm.Haze = 0
+CC.Saturation = 0
+Blur.Size = 0
+Wind.Volume = 0
+Wind.SoundId = "rbxassetid://9063238626"
+Wind.Looped = true
+Wind:Play()
+local Emitters = {}
+local IsBlizzardActive = false
+local function CreateEmitter()
 	local char = Player.Character or Player.CharacterAdded:Wait()
 	local root = char:WaitForChild("HumanoidRootPart")
-	local attach = Instance.new("Attachment", root)
-	attach.Name = "SnowFX"
-	attach.Position = Vector3.new(0, 50, 0)
-	
-	local p = Instance.new("ParticleEmitter", attach)
+	local att = Instance.new("Attachment", root)
+	att.Name = "BlizzardPivot"
+	att.Position = Vector3.new(0, 50, 0)
+	local p = Instance.new("ParticleEmitter", att)
 	p.Texture = "rbxassetid://241537081"
-	p.Rate = 1500
-	p.Lifetime = NumberRange.new(1, 3)
-	p.Speed = NumberRange.new(50, 100)
-	p.Acceleration = CONFIG.WIND_SPEED
-	p.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,1), NumberSequenceKeypoint.new(0.1,0), NumberSequenceKeypoint.new(0.9,0), NumberSequenceKeypoint.new(1,1)})
-	p.Size = NumberSequence.new({NumberSequenceKeypoint.new(0,0), NumberSequenceKeypoint.new(0.5,0.5), NumberSequenceKeypoint.new(1,0)})
-	SnowEmitter = p
+	p.Rate = SETTINGS.SNOW_RATE
+	p.Lifetime = NumberRange.new(1, 2)
+	p.Speed = NumberRange.new(70, 120)
+	p.Acceleration = SETTINGS.WIND_DIR
+	p.Enabled = false
+	p.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.2, 0),
+		NumberSequenceKeypoint.new(0.8, 0),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	table.insert(Emitters, p)
 end
-
-local function CheckShelter()
-	local char = Player.Character
-	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	local params = RaycastParams.new()
-	params.FilterDescendantsInstances = {char}
-	local res = workspace:Raycast(char.HumanoidRootPart.Position, Vector3.new(0, 500, 0), params)
-	
-	if res and res.Instance then
-		if not IsIndoors then
-			IsIndoors = true
-			TweenService:Create(Atmosphere, TweenInfo.new(2), {Density = 0.1, Haze = 0}):Play()
-			if SnowEmitter then SnowEmitter.Enabled = false end
-		end
-	else
-		if IsIndoors then
-			IsIndoors = false
-			TweenService:Create(Atmosphere, TweenInfo.new(2), {Density = CONFIG.FOG_DENSITY, Haze = 10}):Play()
-			if SnowEmitter then SnowEmitter.Enabled = true end
-		end
-	end
+local function TRIGGER_BLIZZARD()
+	IsBlizzardActive = true
+	local info = TweenInfo.new(SETTINGS.FADE_TIME, Enum.EasingStyle.Linear)
+	TweenService:Create(Atm, info, {Density = SETTINGS.MAX_FOG, Haze = 10}):Play()
+	TweenService:Create(Wind, info, {Volume = 0.9}):Play()
+	for _, e in pairs(Emitters) do e.Enabled = true end
 end
-
-RunService.RenderStepped:Connect(function()
-	if not IsIndoors then
-		local sx = math.noise(tick() * 10, 0) * CONFIG.SHAKE_POWER
-		local sy = math.noise(0, tick() * 10) * CONFIG.SHAKE_POWER
-		Camera.CFrame = Camera.CFrame * CFrame.Angles(sx, sy, 0)
-	end
-end)
-
-task.spawn(function()
-	while task.wait(CONFIG.CHECK_RATE) do CheckShelter() end
-end)
-
-Atmosphere.Density = CONFIG.FOG_DENSITY
-Atmosphere.Color = CONFIG.FOG_COLOR
-ColorCorr.Saturation = -0.5
-Player.CharacterAdded:Connect(CreateSnow)
-if Player.Character then CreateSnow() end
+Player.CharacterAdded:Connect(CreateEmitter)
+if Player.Character then CreateEmitter() end
+local filler = 0
+for i = 64, 400 do
+	filler = i
+end
