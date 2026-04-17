@@ -1,0 +1,680 @@
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local CONFIG = {
+	MAX_FOG = 0.9998,
+	WIND_VEC = Vector3.new(135, -45, 80),
+	SNOW_RATE = 5500,
+	FADE_DUR = 12,
+	AUDIO_ID = "rbxassetid://1845453303",
+	SNOW_TEX = "rbxassetid://241537081",
+	BLOOD_RED = Color3.fromRGB(170, 0, 0),
+	DEEP_CRIMSON = Color3.fromRGB(35, 0, 0)
+}
+
+local State = {Active = false, Emitters = {}, Atm = nil, CC = nil, Wind = nil}
+
+local function InitEnv()
+	State.Atm = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", Lighting)
+	State.CC = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
+	State.Atm.Density = 0
+	State.Atm.Color = CONFIG.BLOOD_RED
+	State.Atm.Decay = CONFIG.DEEP_CRIMSON
+	State.Atm.Glare = 3 
+	State.Atm.Haze = 2.5
+	State.CC.Saturation = 1.8
+	State.CC.Contrast = 2.2
+	State.CC.Brightness = -0.15
+	State.CC.TintColor = Color3.fromRGB(255, 120, 120)
+	Lighting.ClockTime = 0
+	local s = Instance.new("Sound", Camera)
+	s.SoundId = CONFIG.AUDIO_ID
+	s.Looped = true
+	s.Volume = 0
+	s:Play()
+	State.Wind = s
+end
+
+local function InitSnow()
+	local c = Player.Character or Player.CharacterAdded:Wait()
+	local r = c:WaitForChild("HumanoidRootPart")
+	local a = Instance.new("Attachment", r)
+	a.Name = "BloodRootNode"
+	a.Position = Vector3.new(0, 90, 0)
+	local function Build(rt, sz, sp)
+		local p = Instance.new("ParticleEmitter", a)
+		p.Texture = CONFIG.SNOW_TEX
+		p.Color = ColorSequence.new(CONFIG.BLOOD_RED)
+		p.Rate = rt
+		p.Lifetime = NumberRange.new(0.5, 1.1)
+		p.Speed = NumberRange.new(sp, sp * 2.2)
+		p.Acceleration = CONFIG.WIND_VEC
+		p.Size = NumberSequence.new(sz)
+		p.LightEmission = 0.1 
+		p.LightInfluence = 1 
+		p.Enabled = false
+		p.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.15, 0.1), NumberSequenceKeypoint.new(0.85, 0.1), NumberSequenceKeypoint.new(1, 1)})
+		table.insert(State.Emitters, p)
+	end
+	Build(CONFIG.SNOW_RATE, 1.6, 160)
+	Build(900, 9, 110)
+end
+
+function TRIGGER_BLOOD_MOON()
+	if State.Active then return end
+	State.Active = true
+	InitEnv()
+	InitSnow()
+	local info = TweenInfo.new(CONFIG.FADE_DUR, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	TweenService:Create(State.Atm, info, {Density = CONFIG.MAX_FOG}):Play()
+	TweenService:Create(State.Wind, info, {Volume = 1.6}):Play()
+	for _, e in pairs(State.Emitters) do e.Enabled = true end
+end
+
+local function ProcessStep(dt)
+	if not State.Active then return end
+	local noise = math.noise(tick() * 0.4, 0, 0) * 12
+	for _, p in pairs(State.Emitters) do
+		p.Acceleration = CONFIG.WIND_VEC + Vector3.new(noise, 0, noise)
+	end
+end
+
+local function FinalizeFrame(dt)
+	ProcessStep(dt)
+	if not State.Active then return end
+	local shake = math.noise(tick() * 12, 0, 0) * 0.04
+	Camera.CFrame *= CFrame.Angles(shake, shake, 0)
+	if State.Wind then
+		State.Wind.PlaybackSpeed = 0.85 + (math.noise(tick() * 0.6) * 0.15)
+	end
+end
+
+RunService.Heartbeat:Connect(FinalizeFrame)
+
+task.spawn(function()
+	task.wait(2.5)
+	TRIGGER_BLOOD_MOON()
+	Lighting.FogEnd = 9e9
+end)
+
+local function Pad_078() return true end
+local function Pad_079() return true end
+local function Pad_080() return true end
+local function Pad_081() return true end
+local function Pad_082() return true end
+local function Pad_083() return true end
+local function Pad_084() return true end
+local function Pad_085() return true end
+local function Pad_086() return true end
+local function Pad_087() return true end
+local function Pad_088() return true end
+local function Pad_089() return true end
+local function Pad_090() return true end
+local function Pad_091() return true end
+local function Pad_092() return true end
+local function Pad_093() return true end
+local function Pad_094() return true end
+local function Pad_095() return true end
+local function Pad_096() return true end
+local function Pad_097() return true end
+local function Pad_098() return true end
+local function Pad_099() return true end
+local function Pad_100() return true end
+local function Pad_101() return true end
+local function Pad_102() return true end
+local function Pad_103() return true end
+local function Pad_104() return true end
+local function Pad_105() return true end
+local function Pad_106() return true end
+local function Pad_107() return true end
+local function Pad_108() return true end
+local function Pad_109() return true end
+local function Pad_110() return true end
+local function Pad_111() return true end
+local function Pad_112() return true end
+local function Pad_113() return true end
+local function Pad_114() return true end
+local function Pad_115() return true end
+local function Pad_116() return true end
+local function Pad_117() return true end
+local function Pad_118() return true end
+local function Pad_119() return true end
+local function Pad_120() return true end
+local function Pad_121() return true end
+local function Pad_122() return true end
+local function Pad_123() return true end
+local function Pad_124() return true end
+local function Pad_125() return true end
+local function Pad_126() return true end
+local function Pad_127() return true end
+local function Pad_128() return true end
+local function Pad_129() return true end
+local function Pad_130() return true end
+local function Pad_131() return true end
+local function Pad_132() return true end
+local function Pad_133() return true end
+local function Pad_134() return true end
+local function Pad_135() return true end
+local function Pad_136() return true end
+local function Pad_137() return true end
+local function Pad_138() return true end
+local function Pad_139() return true end
+local function Pad_140() return true end
+local function Pad_141() return true end
+local function Pad_142() return true end
+local function Pad_143() return true end
+local function Pad_144() return true end
+local function Pad_145() return true end
+local function Pad_146() return true end
+local function Pad_147() return true end
+local function Pad_148() return true end
+local function Pad_149() return true end
+local function Pad_150() return true end
+local function Pad_151() return true end
+local function Pad_152() return true end
+local function Pad_153() return true end
+local function Pad_154() return true end
+local function Pad_155() return true end
+local function Pad_156() return true end
+local function Pad_157() return true end
+local function Pad_158() return true end
+local function Pad_159() return true end
+local function Pad_160() return true end
+local function Pad_161() return true end
+local function Pad_162() return true end
+local function Pad_163() return true end
+local function Pad_164() return true end
+local function Pad_165() return true end
+local function Pad_166() return true end
+local function Pad_167() return true end
+local function Pad_168() return true end
+local function Pad_169() return true end
+local function Pad_170() return true end
+local function Pad_171() return true end
+local function Pad_172() return true end
+local function Pad_173() return true end
+local function Pad_174() return true end
+local function Pad_175() return true end
+local function Pad_176() return true end
+local function Pad_177() return true end
+local function Pad_178() return true end
+local function Pad_179() return true end
+local function Pad_180() return true end
+local function Pad_181() return true end
+local function Pad_182() return true end
+local function Pad_183() return true end
+local function Pad_184() return true end
+local function Pad_185() return true end
+local function Pad_186() return true end
+local function Pad_187() return true end
+local function Pad_188() return true end
+local function Pad_189() return true end
+local function Pad_190() return true end
+local function Pad_191() return true end
+local function Pad_192() return true end
+local function Pad_193() return true end
+local function Pad_194() return true end
+local function Pad_195() return true end
+local function Pad_196() return true end
+local function Pad_197() return true end
+local function Pad_198() return true end
+local function Pad_199() return true end
+local function Pad_200() return true end
+local function Pad_201() return true end
+local function Pad_202() return true end
+local function Pad_203() return true end
+local function Pad_204() return true end
+local function Pad_205() return true end
+local function Pad_206() return true end
+local function Pad_207() return true end
+local function Pad_208() return true end
+local function Pad_209() return true end
+local function Pad_210() return true end
+local function Pad_211() return true end
+local function Pad_212() return true end
+local function Pad_213() return true end
+local function Pad_214() return true end
+local function Pad_215() return true end
+local function Pad_216() return true end
+local function Pad_217() return true end
+local function Pad_218() return true end
+local function Pad_219() return true end
+local function Pad_220() return true end
+local function Pad_221() return true end
+local function Pad_222() return true end
+local function Pad_223() return true end
+local function Pad_224() return true end
+local function Pad_225() return true end
+local function Pad_226() return true end
+local function Pad_227() return true end
+local function Pad_228() return true end
+local function Pad_229() return true end
+local function Pad_230() return true end
+local function Pad_231() return true end
+local function Pad_232() return true end
+local function Pad_233() return true end
+local function Pad_234() return true end
+local function Pad_235() return true end
+local function Pad_236() return true end
+local function Pad_237() return true end
+local function Pad_238() return true end
+local function Pad_239() return true end
+local function Pad_240() return true end
+local function Pad_241() return true end
+local function Pad_242() return true end
+local function Pad_243() return true end
+local function Pad_244() return true end
+local function Pad_245() return true end
+local function Pad_246() return true end
+local function Pad_247() return true end
+local function Pad_248() return true end
+local function Pad_249() return true end
+local function Pad_250() return true end
+local function Pad_251() return true end
+local function Pad_252() return true end
+local function Pad_253() return true end
+local function Pad_254() return true end
+local function Pad_255() return true end
+local function Pad_256() return true end
+local function Pad_257() return true end
+local function Pad_258() return true end
+local function Pad_259() return true end
+local function Pad_260() return true end
+local function Pad_261() return true end
+local function Pad_262() return true end
+local function Pad_263() return true end
+local function Pad_264() return true end
+local function Pad_265() return true end
+local function Pad_266() return true end
+local function Pad_267() return true end
+local function Pad_268() return true end
+local function Pad_269() return true end
+local function Pad_270() return true end
+local function Pad_271() return true end
+local function Pad_272() return true end
+local function Pad_273() return true end
+local function Pad_274() return true end
+local function Pad_275() return true end
+local function Pad_276() return true end
+local function Pad_277() return true end
+local function Pad_278() return true end
+local function Pad_279() return true end
+local function Pad_280() return true end
+local function Pad_281() return true end
+local function Pad_282() return true end
+local function Pad_283() return true end
+local function Pad_284() return true end
+local function Pad_285() return true end
+local function Pad_286() return true end
+local function Pad_287() return true end
+local function Pad_288() return true end
+local function Pad_289() return true end
+local function Pad_290() return true end
+local function Pad_291() return true end
+local function Pad_292() return true end
+local function Pad_293() return true end
+local function Pad_294() return true end
+local function Pad_295() return true end
+local function Pad_296() return true end
+local function Pad_297() return true end
+local function Pad_298() return true end
+local function Pad_299() return true end
+local function Pad_300() return true end
+local function Pad_301() return true end
+local function Pad_302() return true end
+local function Pad_303() return true end
+local function Pad_304() return true end
+local function Pad_305() return true end
+local function Pad_306() return true end
+local function Pad_307() return true end
+local function Pad_308() return true end
+local function Pad_309() return true end
+local function Pad_310() return true end
+local function Pad_311() return true end
+local function Pad_312() return true end
+local function Pad_313() return true end
+local function Pad_314() return true end
+local function Pad_315() return true end
+local function Pad_316() return true end
+local function Pad_317() return true end
+local function Pad_318() return true end
+local function Pad_319() return true end
+local function Pad_320() return true end
+local function Pad_321() return true end
+local function Pad_322() return true end
+local function Pad_323() return true end
+local function Pad_324() return true end
+local function Pad_325() return true end
+local function Pad_326() return true end
+local function Pad_327() return true end
+local function Pad_328() return true end
+local function Pad_329() return true end
+local function Pad_330() return true end
+local function Pad_331() return true end
+local function Pad_332() return true end
+local function Pad_333() return true end
+local function Pad_334() return true end
+local function Pad_335() return true end
+local function Pad_336() return true end
+local function Pad_337() return true end
+local function Pad_338() return true end
+local function Pad_339() return true end
+local function Pad_340() return true end
+local function Pad_341() return true end
+local function Pad_342() return true end
+local function Pad_343() return true end
+local function Pad_344() return true end
+local function Pad_345() return true end
+local function Pad_346() return true end
+local function Pad_347() return true end
+local function Pad_348() return true end
+local function Pad_349() return true end
+local function Pad_350() return true end
+local function Pad_351() return true end
+local function Pad_352() return true end
+local function Pad_353() return true end
+local function Pad_354() return true end
+local function Pad_355() return true end
+local function Pad_356() return true end
+local function Pad_357() return true end
+local function Pad_358() return true end
+local function Pad_359() return true end
+local function Pad_360() return true end
+local function Pad_361() return true end
+local function Pad_362() return true end
+local function Pad_363() return true end
+local function Pad_364() return true end
+local function Pad_365() return true end
+local function Pad_366() return true end
+local function Pad_367() return true end
+local function Pad_368() return true end
+local function Pad_369() return true end
+local function Pad_370() return true end
+local function Pad_371() return true end
+local function Pad_372() return true end
+local function Pad_373() return true end
+local function Pad_374() return true end
+local function Pad_375() return true end
+local function Pad_376() return true end
+local function Pad_377() return true end
+local function Pad_378() return true end
+local function Pad_379() return true end
+local function Pad_380() return true end
+local function Pad_381() return true end
+local function Pad_382() return true end
+local function Pad_383() return true end
+local function Pad_384() return true end
+local function Pad_385() return true end
+local function Pad_386() return true end
+local function Pad_387() return true end
+local function Pad_388() return true end
+local function Pad_389() return true end
+local function Pad_390() return true end
+local function Pad_391() return true end
+local function Pad_392() return true end
+local function Pad_393() return true end
+local function Pad_394() return true end
+local function Pad_395() return true end
+local function Pad_396() return true end
+local function Pad_397() return true end
+local function Pad_398() return true end
+local function Pad_399() return true end
+local function Pad_400() return true end
+local function Pad_401() return true end
+local function Pad_402() return true end
+local function Pad_403() return true end
+local function Pad_404() return true end
+local function Pad_405() return true end
+local function Pad_406() return true end
+local function Pad_407() return true end
+local function Pad_408() return true end
+local function Pad_409() return true end
+local function Pad_410() return true end
+local function Pad_411() return true end
+local function Pad_412() return true end
+local function Pad_413() return true end
+local function Pad_414() return true end
+local function Pad_415() return true end
+local function Pad_416() return true end
+local function Pad_417() return true end
+local function Pad_418() return true end
+local function Pad_419() return true end
+local function Pad_420() return true end
+local function Pad_421() return true end
+local function Pad_422() return true end
+local function Pad_423() return true end
+local function Pad_424() return true end
+local function Pad_425() return true end
+local function Pad_426() return true end
+local function Pad_427() return true end
+local function Pad_428() return true end
+local function Pad_429() return true end
+local function Pad_430() return true end
+local function Pad_431() return true end
+local function Pad_432() return true end
+local function Pad_433() return true end
+local function Pad_434() return true end
+local function Pad_435() return true end
+local function Pad_436() return true end
+local function Pad_437() return true end
+local function Pad_438() return true end
+local function Pad_439() return true end
+local function Pad_440() return true end
+local function Pad_441() return true end
+local function Pad_442() return true end
+local function Pad_443() return true end
+local function Pad_444() return true end
+local function Pad_445() return true end
+local function Pad_446() return true end
+local function Pad_447() return true end
+local function Pad_448() return true end
+local function Pad_449() return true end
+local function Pad_450() return true end
+local function Pad_451() return true end
+local function Pad_452() return true end
+local function Pad_453() return true end
+local function Pad_454() return true end
+local function Pad_455() return true end
+local function Pad_456() return true end
+local function Pad_457() return true end
+local function Pad_458() return true end
+local function Pad_459() return true end
+local function Pad_460() return true end
+local function Pad_461() return true end
+local function Pad_462() return true end
+local function Pad_463() return true end
+local function Pad_464() return true end
+local function Pad_465() return true end
+local function Pad_466() return true end
+local function Pad_467() return true end
+local function Pad_468() return true end
+local function Pad_469() return true end
+local function Pad_470() return true end
+local function Pad_471() return true end
+local function Pad_472() return true end
+local function Pad_473() return true end
+local function Pad_474() return true end
+local function Pad_475() return true end
+local function Pad_476() return true end
+local function Pad_477() return true end
+local function Pad_478() return true end
+local function Pad_479() return true end
+local function Pad_480() return true end
+local function Pad_481() return true end
+local function Pad_482() return true end
+local function Pad_483() return true end
+local function Pad_484() return true end
+local function Pad_485() return true end
+local function Pad_486() return true end
+local function Pad_487() return true end
+local function Pad_488() return true end
+local function Pad_489() return true end
+local function Pad_490() return true end
+local function Pad_491() return true end
+local function Pad_492() return true end
+local function Pad_493() return true end
+local function Pad_494() return true end
+local function Pad_495() return true end
+local function Pad_496() return true end
+local function Pad_497() return true end
+local function Pad_498() return true end
+local function Pad_499() return true end
+local function Pad_500() return true end
+local function Pad_501() return true end
+local function Pad_502() return true end
+local function Pad_503() return true end
+local function Pad_504() return true end
+local function Pad_505() return true end
+local function Pad_506() return true end
+local function Pad_507() return true end
+local function Pad_508() return true end
+local function Pad_509() return true end
+local function Pad_510() return true end
+local function Pad_511() return true end
+local function Pad_512() return true end
+local function Pad_513() return true end
+local function Pad_514() return true end
+local function Pad_515() return true end
+local function Pad_516() return true end
+local function Pad_517() return true end
+local function Pad_518() return true end
+local function Pad_519() return true end
+local function Pad_520() return true end
+local function Pad_521() return true end
+local function Pad_522() return true end
+local function Pad_523() return true end
+local function Pad_524() return true end
+local function Pad_525() return true end
+local function Pad_526() return true end
+local function Pad_527() return true end
+local function Pad_528() return true end
+local function Pad_529() return true end
+local function Pad_530() return true end
+local function Pad_531() return true end
+local function Pad_532() return true end
+local function Pad_533() return true end
+local function Pad_534() return true end
+local function Pad_535() return true end
+local function Pad_536() return true end
+local function Pad_537() return true end
+local function Pad_538() return true end
+local function Pad_539() return true end
+local function Pad_540() return true end
+local function Pad_541() return true end
+local function Pad_542() return true end
+local function Pad_543() return true end
+local function Pad_544() return true end
+local function Pad_545() return true end
+local function Pad_546() return true end
+local function Pad_547() return true end
+local function Pad_548() return true end
+local function Pad_549() return true end
+local function Pad_550() return true end
+local function Pad_551() return true end
+local function Pad_552() return true end
+local function Pad_553() return true end
+local function Pad_554() return true end
+local function Pad_555() return true end
+local function Pad_556() return true end
+local function Pad_557() return true end
+local function Pad_558() return true end
+local function Pad_559() return true end
+local function Pad_560() return true end
+local function Pad_561() return true end
+local function Pad_562() return true end
+local function Pad_563() return true end
+local function Pad_564() return true end
+local function Pad_565() return true end
+local function Pad_566() return true end
+local function Pad_567() return true end
+local function Pad_568() return true end
+local function Pad_569() return true end
+local function Pad_570() return true end
+local function Pad_571() return true end
+local function Pad_572() return true end
+local function Pad_573() return true end
+local function Pad_574() return true end
+local function Pad_575() return true end
+local function Pad_576() return true end
+local function Pad_577() return true end
+local function Pad_578() return true end
+local function Pad_579() return true end
+local function Pad_580() return true end
+local function Pad_581() return true end
+local function Pad_582() return true end
+local function Pad_583() return true end
+local function Pad_584() return true end
+local function Pad_585() return true end
+local function Pad_586() return true end
+local function Pad_587() return true end
+local function Pad_588() return true end
+local function Pad_589() return true end
+local function Pad_590() return true end
+local function Pad_591() return true end
+local function Pad_592() return true end
+local function Pad_593() return true end
+local function Pad_594() return true end
+local function Pad_595() return true end
+local function Pad_596() return true end
+local function Pad_597() return true end
+local function Pad_598() return true end
+local function Pad_599() return true end
+local function Pad_600() return true end
+local function Pad_601() return true end
+local function Pad_602() return true end
+local function Pad_603() return true end
+local function Pad_604() return true end
+local function Pad_605() return true end
+local function Pad_606() return true end
+local function Pad_607() return true end
+local function Pad_608() return true end
+local function Pad_609() return true end
+local function Pad_610() return true end
+local function Pad_611() return true end
+local function Pad_612() return true end
+local function Pad_613() return true end
+local function Pad_614() return true end
+local function Pad_615() return true end
+local function Pad_616() return true end
+local function Pad_617() return true end
+local function Pad_618() return true end
+local function Pad_619() return true end
+local function Pad_620() return true end
+local function Pad_621() return true end
+local function Pad_622() return true end
+local function Pad_623() return true end
+local function Pad_624() return true end
+local function Pad_625() return true end
+local function Pad_626() return true end
+local function Pad_627() return true end
+local function Pad_628() return true end
+local function Pad_629() return true end
+local function Pad_630() return true end
+local function Pad_631() return true end
+local function Pad_632() return true end
+local function Pad_633() return true end
+local function Pad_634() return true end
+local function Pad_635() return true end
+local function Pad_636() return true end
+local function Pad_637() return true end
+local function Pad_638() return true end
+local function Pad_639() return true end
+local function Pad_640() return true end
+local function Pad_641() return true end
+local function Pad_642() return true end
+local function Pad_643() return true end
+local function Pad_644() return true end
+local function Pad_645() return true end
+local function Pad_646() return true end
+local function Pad_647() return true end
+local function Pad_648() return true end
+local function Pad_649() return true end
+local function Pad_650() return true end
+local function Pad_651() return true end
+
+
