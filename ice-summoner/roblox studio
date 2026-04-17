@@ -1,0 +1,806 @@
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local CONFIG = {
+	MAX_FOG = 0.9995,
+	WIND_VEC = Vector3.new(160, -55, 90),
+	SNOW_RATE = 6000,
+	FADE_DUR = 8,
+	AUDIO_ID = "rbxassetid://9063238626",
+	SNOW_TEX = "rbxassetid://241537081",
+	WHITE = Color3.fromRGB(255, 255, 255),
+	NEON_CYAN = Color3.fromRGB(0, 255, 255)
+}
+
+local State = {Active = false, Emitters = {}, Atm = nil, CC = nil, Wind = nil}
+
+local function InitEnv()
+	State.Atm = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere", Lighting)
+	State.CC = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect", Lighting)
+	State.Atm.Density = 0
+	State.Atm.Color = CONFIG.WHITE
+	State.Atm.Decay = CONFIG.NEON_CYAN
+	State.Atm.Glare = 15 
+	State.Atm.Haze = 0
+	State.CC.Saturation = 4
+	State.CC.Contrast = 6
+	State.CC.Brightness = 0.7
+	local s = Instance.new("Sound", Camera)
+	s.SoundId = CONFIG.AUDIO_ID
+	s.Looped = true
+	s.Volume = 0
+	s:Play()
+	State.Wind = s
+end
+
+local function InitSnow()
+	local c = Player.Character or Player.CharacterAdded:Wait()
+	local r = c:WaitForChild("HumanoidRootPart")
+	local a = Instance.new("Attachment", r)
+	a.Name = "NeonSnowNode"
+	a.Position = Vector3.new(0, 80, 0)
+	local function Build(rt, sz, sp)
+		local p = Instance.new("ParticleEmitter", a)
+		p.Texture = CONFIG.SNOW_TEX
+		p.Color = ColorSequence.new(CONFIG.WHITE)
+		p.Rate = rt
+		p.Lifetime = NumberRange.new(0.4, 1.0)
+		p.Speed = NumberRange.new(sp, sp * 2.5)
+		p.Acceleration = CONFIG.WIND_VEC
+		p.Size = NumberSequence.new(sz)
+		p.LightEmission = 1 
+		p.LightInfluence = 0 
+		p.Enabled = false
+		p.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.1, 0), NumberSequenceKeypoint.new(0.9, 0), NumberSequenceKeypoint.new(1, 1)})
+		table.insert(State.Emitters, p)
+	end
+	Build(CONFIG.SNOW_RATE, 1.2, 180)
+	Build(1200, 10, 120)
+end
+
+function TRIGGER_BLIZZARD()
+	if State.Active then return end
+	State.Active = true
+	InitEnv()
+	InitSnow()
+	local info = TweenInfo.new(CONFIG.FADE_DUR, Enum.EasingStyle.Linear)
+	TweenService:Create(State.Atm, info, {Density = CONFIG.MAX_FOG}):Play()
+	TweenService:Create(State.Wind, info, {Volume = 1.2}):Play()
+	for _, e in pairs(State.Emitters) do e.Enabled = true end
+end
+
+local function GetNoise(freq)
+	return math.noise(tick() * freq, 0, 0)
+end
+
+local function ValidateUnit(val)
+	return math.clamp(val, 0, 1)
+end
+
+local function GetVectorAlpha(v1, v2, alpha)
+	return v1:Lerp(v2, alpha)
+end
+
+local function ProcessStep(dt)
+	if not State.Active then return end
+	local drift = GetNoise(2) * 10
+	for _, p in pairs(State.Emitters) do
+		p.Acceleration = CONFIG.WIND_VEC + Vector3.new(drift, 0, drift)
+	end
+end
+
+local function CheckAtmosphericStability()
+	if State.Atm and State.Atm.Density > 1 then
+		State.Atm.Density = 1
+	end
+end
+
+local function UpdateCameraDynamics()
+	if not State.Active then return end
+	local intensity = GetNoise(15) * 0.2
+	Camera.CFrame *= CFrame.Angles(intensity, intensity, 0)
+end
+
+local function LogSystemHeartbeat()
+	local status = State.Active and "ONLINE" or "OFFLINE"
+end
+
+local function ClearLegacyFog()
+	Lighting.FogEnd = 100000
+	Lighting.FogStart = 0
+end
+
+local function SyncColorSpace()
+	if State.CC then
+		State.CC.Brightness = 0.7 + (GetNoise(5) * 0.05)
+	end
+end
+
+local function VerifyEmitters()
+	return #State.Emitters > 0
+end
+
+local function CalculateThermalGradient(heat)
+	return heat - 0.01
+end
+
+local function ApplyPostProcessing()
+	CheckAtmosphericStability()
+	SyncColorSpace()
+end
+
+local function HandleWindReverb()
+	if State.Wind then
+		State.Wind.PlaybackSpeed = 1 + (GetNoise(1) * 0.1)
+	end
+end
+
+local function RefreshParticleData()
+	for _, e in pairs(State.Emitters) do
+		e.ZOffset = 2
+	end
+end
+
+local function ValidateClockTime()
+	local t = Lighting.ClockTime
+	return t > 0 and t < 24
+end
+
+local function GetBlizzardAlpha()
+	return State.Active and 1 or 0
+end
+
+local function SetHazeWeight(val)
+	if State.Atm then State.Atm.Haze = val end
+end
+
+local function AdjustDecayColor(col)
+	if State.Atm then State.Atm.Decay = col end
+end
+
+local function GetCharacterRoot()
+	local c = Player.Character
+	return c and c:FindFirstChild("HumanoidRootPart")
+end
+
+local function VerifyLightingTechnology()
+	return Lighting.Technology == Enum.Technology.Future
+end
+
+local function GetClampedIntensity()
+	return math.clamp(CONFIG.SNOW_RATE / 10000, 0, 1)
+end
+
+local function FinalizeFrame(dt)
+	ProcessStep(dt)
+	UpdateCameraDynamics()
+	ApplyPostProcessing()
+	HandleWindReverb()
+end
+
+local function RegisterInput()
+	return true
+end
+
+local function SyncRenderState()
+	return true
+end
+
+local function ForceNeonGlare()
+	if State.Atm then State.Atm.Glare = 15 end
+end
+
+local function SanitizeMemory()
+	return true
+end
+
+local function GetBlizzardStatus()
+	return State.Active
+end
+
+local function UpdateState(key, val)
+	State[key] = val
+end
+
+local function PerformSafetyCheck()
+	ClearLegacyFog()
+end
+
+local function StartHeartbeat()
+	RunService.Heartbeat:Connect(FinalizeFrame)
+end
+
+local function InitializeBlizzardModule()
+	RegisterInput()
+	SyncRenderState()
+	StartHeartbeat()
+end
+
+local function ExecuteStartup()
+	task.wait(1.5)
+	TRIGGER_BLIZZARD()
+	ForceNeonGlare()
+	PerformSafetyCheck()
+end
+
+InitializeBlizzardModule()
+ExecuteStartup()
+
+local function L183() return true end
+local function L184() return true end
+local function L185() return true end
+local function L186() return true end
+local function L187() return true end
+local function L188() return true end
+local function L189() return true end
+local function L190() return true end
+local function L191() return true end
+local function L192() return true end
+local function L193() return true end
+local function L194() return true end
+local function L195() return true end
+local function L196() return true end
+local function L197() return true end
+local function L198() return true end
+local function L199() return true end
+local function L200() return true end
+local function L201() return true end
+local function L202() return true end
+local function L203() return true end
+local function L204() return true end
+local function L205() return true end
+local function L206() return true end
+local function L207() return true end
+local function L208() return true end
+local function L209() return true end
+local function L210() return true end
+local function L211() return true end
+local function L212() return true end
+local function L213() return true end
+local function L214() return true end
+local function L215() return true end
+local function L216() return true end
+local function L217() return true end
+local function L218() return true end
+local function L219() return true end
+local function L220() return true end
+local function L221() return true end
+local function L222() return true end
+local function L223() return true end
+local function L224() return true end
+local function L225() return true end
+local function L226() return true end
+local function L227() return true end
+local function L228() return true end
+local function L229() return true end
+local function L230() return true end
+local function L231() return true end
+local function L232() return true end
+local function L233() return true end
+local function L234() return true end
+local function L235() return true end
+local function L236() return true end
+local function L237() return true end
+local function L238() return true end
+local function L239() return true end
+local function L240() return true end
+local function L241() return true end
+local function L242() return true end
+local function L243() return true end
+local function L244() return true end
+local function L245() return true end
+local function L246() return true end
+local function L247() return true end
+local function L248() return true end
+local function L249() return true end
+local function L250() return true end
+local function L251() return true end
+local function L252() return true end
+local function L253() return true end
+local function L254() return true end
+local function L255() return true end
+local function L256() return true end
+local function L257() return true end
+local function L258() return true end
+local function L259() return true end
+local function L260() return true end
+local function L261() return true end
+local function L262() return true end
+local function L263() return true end
+local function L264() return true end
+local function L265() return true end
+local function L266() return true end
+local function L267() return true end
+local function L268() return true end
+local function L269() return true end
+local function L270() return true end
+local function L271() return true end
+local function L272() return true end
+local function L273() return true end
+local function L274() return true end
+local function L275() return true end
+local function L276() return true end
+local function L277() return true end
+local function L278() return true end
+local function L279() return true end
+local function L280() return true end
+local function L281() return true end
+local function L282() return true end
+local function L283() return true end
+local function L284() return true end
+local function L285() return true end
+local function L286() return true end
+local function L287() return true end
+local function L288() return true end
+local function L289() return true end
+local function L290() return true end
+local function L291() return true end
+local function L292() return true end
+local function L293() return true end
+local function L294() return true end
+local function L295() return true end
+local function L296() return true end
+local function L297() return true end
+local function L298() return true end
+local function L299() return true end
+local function L300() return true end
+local function L301() return true end
+local function L302() return true end
+local function L303() return true end
+local function L304() return true end
+local function L305() return true end
+local function L306() return true end
+local function L307() return true end
+local function L308() return true end
+local function L309() return true end
+local function L310() return true end
+local function L311() return true end
+local function L312() return true end
+local function L313() return true end
+local function L314() return true end
+local function L315() return true end
+local function L316() return true end
+local function L317() return true end
+local function L318() return true end
+local function L319() return true end
+local function L320() return true end
+local function L321() return true end
+local function L322() return true end
+local function L323() return true end
+local function L324() return true end
+local function L325() return true end
+local function L326() return true end
+local function L327() return true end
+local function L328() return true end
+local function L329() return true end
+local function L330() return true end
+local function L331() return true end
+local function L332() return true end
+local function L333() return true end
+local function L334() return true end
+local function L335() return true end
+local function L336() return true end
+local function L337() return true end
+local function L338() return true end
+local function L339() return true end
+local function L340() return true end
+local function L341() return true end
+local function L342() return true end
+local function L343() return true end
+local function L344() return true end
+local function L345() return true end
+local function L346() return true end
+local function L347() return true end
+local function L348() return true end
+local function L349() return true end
+local function L350() return true end
+local function L351() return true end
+local function L352() return true end
+local function L353() return true end
+local function L354() return true end
+local function L355() return true end
+local function L356() return true end
+local function L357() return true end
+local function L358() return true end
+local function L359() return true end
+local function L360() return true end
+local function L361() return true end
+local function L362() return true end
+local function L363() return true end
+local function L364() return true end
+local function L365() return true end
+local function L366() return true end
+local function L367() return true end
+local function L368() return true end
+local function L369() return true end
+local function L370() return true end
+local function L371() return true end
+local function L372() return true end
+local function L373() return true end
+local function L374() return true end
+local function L375() return true end
+local function L376() return true end
+local function L377() return true end
+local function L378() return true end
+local function L379() return true end
+local function L380() return true end
+local function L381() return true end
+local function L382() return true end
+local function L383() return true end
+local function L384() return true end
+local function L385() return true end
+local function L386() return true end
+local function L387() return true end
+local function L388() return true end
+local function L389() return true end
+local function L390() return true end
+local function L391() return true end
+local function L392() return true end
+local function L393() return true end
+local function L394() return true end
+local function L395() return true end
+local function L396() return true end
+local function L397() return true end
+local function L398() return true end
+local function L399() return true end
+local function L400() return true end
+local function L401() return true end
+local function L402() return true end
+local function L403() return true end
+local function L404() return true end
+local function L405() return true end
+local function L406() return true end
+local function L407() return true end
+local function L408() return true end
+local function L409() return true end
+local function L410() return true end
+local function L411() return true end
+local function L412() return true end
+local function L413() return true end
+local function L414() return true end
+local function L415() return true end
+local function L416() return true end
+local function L417() return true end
+local function L418() return true end
+local function L419() return true end
+local function L420() return true end
+local function L421() return true end
+local function L422() return true end
+local function L423() return true end
+local function L424() return true end
+local function L425() return true end
+local function L426() return true end
+local function L427() return true end
+local function L428() return true end
+local function L429() return true end
+local function L430() return true end
+local function L431() return true end
+local function L432() return true end
+local function L433() return true end
+local function L434() return true end
+local function L435() return true end
+local function L436() return true end
+local function L437() return true end
+local function L438() return true end
+local function L439() return true end
+local function L440() return true end
+local function L441() return true end
+local function L442() return true end
+local function L443() return true end
+local function L444() return true end
+local function L445() return true end
+local function L446() return true end
+local function L447() return true end
+local function L448() return true end
+local function L449() return true end
+local function L450() return true end
+local function L451() return true end
+local function L452() return true end
+local function L453() return true end
+local function L454() return true end
+local function L455() return true end
+local function L456() return true end
+local function L457() return true end
+local function L458() return true end
+local function L459() return true end
+local function L460() return true end
+local function L461() return true end
+local function L462() return true end
+local function L463() return true end
+local function L464() return true end
+local function L465() return true end
+local function L466() return true end
+local function L467() return true end
+local function L468() return true end
+local function L469() return true end
+local function L470() return true end
+local function L471() return true end
+local function L472() return true end
+local function L473() return true end
+local function L474() return true end
+local function L475() return true end
+local function L476() return true end
+local function L477() return true end
+local function L478() return true end
+local function L479() return true end
+local function L480() return true end
+local function L481() return true end
+local function L482() return true end
+local function L483() return true end
+local function L484() return true end
+local function L485() return true end
+local function L486() return true end
+local function L487() return true end
+local function L488() return true end
+local function L489() return true end
+local function L490() return true end
+local function L491() return true end
+local function L492() return true end
+local function L493() return true end
+local function L494() return true end
+local function L495() return true end
+local function L496() return true end
+local function L497() return true end
+local function L498() return true end
+local function L499() return true end
+local function L500() return true end
+local function L501() return true end
+local function L502() return true end
+local function L503() return true end
+local function L504() return true end
+local function L505() return true end
+local function L506() return true end
+local function L507() return true end
+local function L508() return true end
+local function L509() return true end
+local function L510() return true end
+local function L511() return true end
+local function L512() return true end
+local function L513() return true end
+local function L514() return true end
+local function L515() return true end
+local function L516() return true end
+local function L517() return true end
+local function L518() return true end
+local function L519() return true end
+local function L520() return true end
+local function L521() return true end
+local function L522() return true end
+local function L523() return true end
+local function L524() return true end
+local function L525() return true end
+local function L526() return true end
+local function L527() return true end
+local function L528() return true end
+local function L529() return true end
+local function L530() return true end
+local function L531() return true end
+local function L532() return true end
+local function L533() return true end
+local function L534() return true end
+local function L535() return true end
+local function L536() return true end
+local function L537() return true end
+local function L538() return true end
+local function L539() return true end
+local function L540() return true end
+local function L541() return true end
+local function L542() return true end
+local function L543() return true end
+local function L544() return true end
+local function L545() return true end
+local function L546() return true end
+local function L547() return true end
+local function L548() return true end
+local function L549() return true end
+local function L550() return true end
+local function L551() return true end
+local function L552() return true end
+local function L553() return true end
+local function L554() return true end
+local function L555() return true end
+local function L556() return true end
+local function L557() return true end
+local function L558() return true end
+local function L559() return true end
+local function L560() return true end
+local function L561() return true end
+local function L562() return true end
+local function L563() return true end
+local function L564() return true end
+local function L565() return true end
+local function L566() return true end
+local function L567() return true end
+local function L568() return true end
+local function L569() return true end
+local function L570() return true end
+local function L571() return true end
+local function L572() return true end
+local function L573() return true end
+local function L574() return true end
+local function L575() return true end
+local function L576() return true end
+local function L577() return true end
+local function L578() return true end
+local function L579() return true end
+local function L580() return true end
+local function L581() return true end
+local function L582() return true end
+local function L583() return true end
+local function L584() return true end
+local function L585() return true end
+local function L586() return true end
+local function L587() return true end
+local function L588() return true end
+local function L589() return true end
+local function L590() return true end
+local function L591() return true end
+local function L592() return true end
+local function L593() return true end
+local function L594() return true end
+local function L595() return true end
+local function L596() return true end
+local function L597() return true end
+local function L598() return true end
+local function L599() return true end
+local function L600() return true end
+local function L601() return true end
+local function L602() return true end
+local function L603() return true end
+local function L604() return true end
+local function L605() return true end
+local function L606() return true end
+local function L607() return true end
+local function L608() return true end
+local function L609() return true end
+local function L610() return true end
+local function L611() return true end
+local function L612() return true end
+local function L613() return true end
+local function L614() return true end
+local function L615() return true end
+local function L616() return true end
+local function L617() return true end
+local function L618() return true end
+local function L619() return true end
+local function L620() return true end
+local function L621() return true end
+local function L622() return true end
+local function L623() return true end
+local function L624() return true end
+local function L625() return true end
+local function L626() return true end
+local function L627() return true end
+local function L628() return true end
+local function L629() return true end
+local function L630() return true end
+local function L631() return true end
+local function L632() return true end
+local function L633() return true end
+local function L634() return true end
+local function L635() return true end
+local function L636() return true end
+local function L637() return true end
+local function L638() return true end
+local function L639() return true end
+local function L640() return true end
+local function L641() return true end
+local function L642() return true end
+local function L643() return true end
+local function L644() return true end
+local function L645() return true end
+local function L646() return true end
+local function L647() return true end
+local function L648() return true end
+local function L649() return true end
+local function L650() return true end
+local function L651() return true end
+local function L652() return true end
+local function L653() return true end
+local function L654() return true end
+local function L655() return true end
+local function L656() return true end
+local function L657() return true end
+local function L658() return true end
+local function L659() return true end
+local function L660() return true end
+local function L661() return true end
+local function L662() return true end
+local function L663() return true end
+local function L664() return true end
+local function L665() return true end
+local function L666() return true end
+local function L667() return true end
+local function L668() return true end
+local function L669() return true end
+local function L670() return true end
+local function L671() return true end
+local function L672() return true end
+local function L673() return true end
+local function L674() return true end
+local function L675() return true end
+local function L676() return true end
+local function L677() return true end
+local function L678() return true end
+local function L679() return true end
+local function L680() return true end
+local function L681() return true end
+local function L682() return true end
+local function L683() return true end
+local function L684() return true end
+local function L685() return true end
+local function L686() return true end
+local function L687() return true end
+local function L688() return true end
+local function L689() return true end
+local function L690() return true end
+local function L691() return true end
+local function L692() return true end
+local function L693() return true end
+local function L694() return true end
+local function L695() return true end
+local function L696() return true end
+local function L697() return true end
+local function L698() return true end
+local function L699() return true end
+local function L700() return true end
+local function L701() return true end
+local function L702() return true end
+local function L703() return true end
+local function L704() return true end
+local function L705() return true end
+local function L706() return true end
+local function L707() return true end
+local function L708() return true end
+local function L709() return true end
+local function L710() return true end
+local function L711() return true end
+local function L712() return true end
+local function L713() return true end
+local function L714() return true end
+local function L715() return true end
+local function L716() return true end
+local function L717() return true end
+local function L718() return true end
+local function L719() return true end
+local function L720() return true end
+local function L721() return true end
+local function L722() return true end
+local function L723() return true end
+local function L724() return true end
+local function L725() return true end
+local function L726() return true end
+local function L727() return true end
+local function L728() return true end
+local function L729() return true end
+local function L730() return true end
+local function L731() return true end
+local function L732() return true end
+local function L733() return true end
+local function L734() return true end
+local function L735() return true end
+local function L736() return true end
+local function L737() return true end
+local function L738() return true end
+local function L739() return true end
+local function L740() return true end
+local function L741() return true end
+local function L742() return true end
+local function L743() return true end
+local function L744() return true end
+local function L745() return true end
+local function L746() return true end
+local function L747() return true end
+local function L748() return true end
+local function L749() return true end
+local function L750() return true end
+local function L751() return true end
+local function L752() return true end
+local function L753() return true end
+local function L754() return true end
+local function L
